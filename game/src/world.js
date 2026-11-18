@@ -1,6 +1,6 @@
-// world.js — the game state and its update: the player on foot and in a car, the
-// wanted level and the police response, combat, missions, taxi fares, particles,
-// the clock, and saving to localStorage.
+// world.js — the game state and its update.
+// The player on foot and in a car, the wanted level and the police response,
+// combat, missions, taxi fares, particles, the clock, and saving to localStorage.
 
 import { WORLD, PLAYER, CAR, POLICE, WANTED, TRAFFIC } from './config.js';
 import { mulberry32, range, pick } from './random.js';
@@ -235,12 +235,6 @@ function stepPlayerOnFoot(world, dt, input, mouseWorld) {
         raiseWanted(world, 3);
       } else {
         addMessage(world, 'Behind the wheel', 2);
-      }
-    } else {
-      // Start a taxi fare with a nearby pedestrian who wants one.
-      const ped = world.peds.find((q) => q.fare && Math.hypot(q.x - p.x, q.y - p.y) < 60);
-      if (ped && !world.mission.fare && p.inCar) {
-        // (handled in the driving branch; on foot we only hail)
       }
     }
   }

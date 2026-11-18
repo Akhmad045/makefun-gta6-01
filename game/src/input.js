@@ -1,4 +1,5 @@
-// input.js — keyboard and mouse state, plus the on-screen control hints.
+// input.js — keyboard and mouse, boiled down to two questions the game asks
+// every frame: "is this held?" and "was this just pressed?".
 
 export const KEYS = {
   up: ['KeyW', 'ArrowUp'],

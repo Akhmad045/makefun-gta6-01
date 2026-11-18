@@ -1,5 +1,6 @@
-// audio.js — every sound is synthesized with WebAudio: no audio files, no network.
-// Engine hum, police siren, gunshot, cash blip, mission jingle and crash thud.
+// audio.js — every sound in Solmar Bay is synthesized with WebAudio.
+// No audio files, no network: an engine hum, a police siren, a gunshot, a cash
+// blip, a mission jingle and a crash thud, all built from oscillators.
 
 export class SoundBank {
   constructor() {
@@ -19,6 +20,7 @@ export class SoundBank {
     try {
       const Ctx = window.AudioContext || window.webkitAudioContext;
       this.ctx = new Ctx();
+      // A low sawtooth through a low-pass filter is the engine.
       this.engineOsc = this.ctx.createOscillator();
       this.engineOsc.type = 'sawtooth';
       this.engineOsc.frequency.value = 55;
@@ -31,6 +33,7 @@ export class SoundBank {
       engineFilter.connect(this.engineGain);
       this.engineGain.connect(this.ctx.destination);
       this.engineOsc.start();
+      // A triangle wave that wobbles between two notes is the siren.
       this.sirenOsc = this.ctx.createOscillator();
       this.sirenOsc.type = 'triangle';
       this.sirenOsc.frequency.value = 700;

@@ -1,6 +1,7 @@
-// missions.js — the story of Solmar Bay. Rae Delgado, a driver who lost her delivery
-// job, takes work from Marisol Vega, a fixer in Old Port. Three missions, played in
-// order, plus taxi fares any pedestrian with a raised hand will pay for.
+// missions.js — the story of Solmar Bay.
+// Rae Delgado, a driver who lost her delivery job, takes work from Marisol Vega,
+// a fixer in Old Port. Three missions, played in order, plus taxi fares from
+// any pedestrian with a raised hand.
 
 export const STORY_INTRO = 'Rae Delgado lost her delivery job on a Tuesday. By Friday, Marisol Vega — fixer, lender, keeper of Old Port — offered her a wheel and a second chance. Solmar Bay pays drivers who don\u2019t ask questions.';
 

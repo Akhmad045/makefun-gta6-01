@@ -1,6 +1,7 @@
-// city.js — builds Solmar Bay from a seed: the road grid, the blocks and their
-// buildings, the beach and the bay, the park, the plaza and the marina, plus the
-// named places missions and the minimap use.
+// city.js — Solmar Bay, grown from a seed.
+// The road grid, the blocks and their buildings, the beach and the bay, the
+// park, the plaza and the marina, plus the named places the missions and the
+// minimap point at. The same seed always grows the same city.
 
 import { WORLD, PALETTE, DISTRICTS } from './config.js';
 import { mulberry32, range, pick, intRange } from './random.js';

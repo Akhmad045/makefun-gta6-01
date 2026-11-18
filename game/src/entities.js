@@ -1,6 +1,7 @@
-// entities.js — the living city: traffic cars that drive the road grid, pedestrians
-// on the sidewalks, and police cars and officers who chase the player. Also the
-// shared car physics (steering, acceleration, building and car collisions).
+// entities.js — the living city.
+// Traffic cars that drive the road grid, pedestrians on the sidewalks, police
+// cars and officers who chase the player, and the car physics they all share:
+// steering, acceleration, and collisions with buildings and each other.
 
 import { WORLD, CAR, POLICE, PALETTE } from './config.js';
 import { mulberry32, range, pick, intRange } from './random.js';

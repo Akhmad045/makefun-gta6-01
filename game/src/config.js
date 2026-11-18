@@ -1,11 +1,13 @@
-// Solmar Bay — a 2D top-down open-world crime game.
-// config.js: every tunable number and the palette in one place.
+// config.js — Solmar Bay, tuned in one place.
+// Every number the game balances on lives here: the size of the city, how fast
+// Rae walks and drives, how hard the police push back, and the palette the
+// whole map is painted from.
 
 export const WORLD = {
-  size: 2600, // the city is a square, world units
-  roadEvery: 260, // spacing of the road grid
+  size: 2600, // the city is a square, measured in world units
+  roadEvery: 260, // spacing between the lines of the road grid
   roadWidth: 58,
-  beachY: 2320, // south of here is sand, then the bay
+  beachY: 2320, // south of this line is sand, then the bay
   waterY: 2470,
 };
 
@@ -33,12 +35,12 @@ export const POLICE = {
   accel: 380,
   ramDamage: 6,
   bustRange: 34,
-  bustTime: 1.6, // seconds a cop must stay on the player to bust them
+  bustTime: 1.6, // seconds an officer must stay on the player to bust them
 };
 
 export const WANTED = {
   maxStars: 5,
-  decayDelay: 9, // seconds unseen before stars start falling
+  decayDelay: 9, // seconds unseen before the stars start falling
   decayEvery: 6,
   copsPerStar: 2,
   maxCops: 6,

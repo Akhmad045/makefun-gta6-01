@@ -1,5 +1,6 @@
-// main.js — boots Solmar Bay: sizes the canvas, reads ?shot= and ?seed=, runs the
-// fixed-step loop, and feeds the sound bank from the world each frame.
+// main.js — boots Solmar Bay.
+// Sizes the canvas, reads ?shot= and ?seed=, runs the fixed-step loop, and feeds
+// the sound bank from the world each frame.
 
 import { createWorld, updateWorld, loadSave, SCREENS } from './world.js';
 import { renderWorld } from './render.js';

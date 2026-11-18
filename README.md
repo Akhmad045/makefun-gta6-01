@@ -10,8 +10,8 @@
 [![No dependencies](https://img.shields.io/badge/Dependencies-none-lightgrey.svg)](#play-it)
 
 **Solmar Bay** is a complete 2D top-down open-world crime game that runs entirely
-offline in a desktop browser from static files. No build step, no network request,
-no library — just canvas, a seeded city, and the rules.
+offline in a desktop browser, from static files alone. No build step, no network
+request, no library — just a canvas, a seeded city, and the rules.
 
 Rae Delgado lost her delivery job on a Tuesday. By Friday, Marisol Vega — fixer,
 lender, keeper of Old Port — offered her a wheel and a second chance. Solmar Bay
@@ -23,7 +23,7 @@ pays drivers who don't ask questions.
   (Downtown, Old Port, Marina Bay, Palm Court, North Hills), a beach, a bay and a
   pier, parks, plazas and palm rows, all generated from a seed.
 - **Traffic and pedestrians** — cars drive the grid and turn at intersections;
-  pedestrians walk the sidewalks, and some wave for a taxi fare.
+  pedestrians walk the sidewalks, and some wave for a taxi fare worth $35–$85.
 - **Cars to steal and drive** — walk up to any car and press **E**. Stealing a
   stranger's car raises your wanted level; Rae's own yellow cab is parked outside
   her apartment.
@@ -56,6 +56,7 @@ Or serve `game/` with any static file server and open `game/index.html`.
 
 | Key | Action |
 | --- | --- |
+| Enter | Start / confirm on the title and pause screens |
 | WASD / arrows | Walk, or drive (W/S throttle, A/D steer) |
 | E | Enter / exit a car |
 | Mouse + click / F | Aim and shoot (on foot) |
@@ -92,3 +93,5 @@ game/
 
 MIT — see [LICENSE](LICENSE). Solmar Bay, its city, characters and story are
 entirely original.
+
+Built for the make.fun gta6-01 bounty — play it here: https://make.fun/bounty/gta6-01?ref=4g7knchf

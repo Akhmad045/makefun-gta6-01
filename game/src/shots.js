@@ -1,7 +1,7 @@
 // shots.js — the four screenshot scenes behind ?shot=cover|drive|city|start.
-// Each one plays the real rules forward from a fresh seeded world for a fixed
-// number of steps, steered by a simple autopilot, so the frame is what a short
-// game really looks like and the same seed always gives the same frame.
+// Every scene replays the real game rules forward from a fresh seeded world for
+// a fixed number of steps, steered by a simple autopilot, so each frame is what
+// a short game really looks like — and the same seed always gives the same frame.
 
 import { SCREENS } from './world.js';
 import { MISSIONS } from './missions.js';

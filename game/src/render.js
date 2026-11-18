@@ -1,10 +1,21 @@
-// render.js — draws Solmar Bay: the sun-soaked city, the cars and the crowds, the
-// police lights, the HUD with its minimap, and the title, pause and end screens.
-// Everything is canvas 2D, no image files.
+// render.js — draws Solmar Bay.
+// The sun-soaked city, the cars and the crowds, the police lights, the HUD with
+// its minimap, and the title, pause and end screens. Everything is canvas 2D,
+// no image files.
 
 import { WORLD, PALETTE, CAR, PLAYER } from './config.js';
 import { currentMission, currentStage, missionObjectiveText, STORY_INTRO } from './missions.js';
 import { SCREENS } from './world.js';
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
 
 function drawCarShape(ctx, car) {
   ctx.save();
@@ -44,26 +55,17 @@ function drawCarShape(ctx, car) {
   ctx.restore();
 }
 
-function roundRect(ctx, x, y, w, h, r) {
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.arcTo(x + w, y, x + w, y + h, r);
-  ctx.arcTo(x + w, y + h, x, y + h, r);
-  ctx.arcTo(x, y + h, x, y, r);
-  ctx.arcTo(x, y, x + w, y, r);
-  ctx.closePath();
-}
-
 function drawCity(ctx, city, view, time) {
   const { x0, y0, x1, y1 } = view;
   // Grass base.
   ctx.fillStyle = PALETTE.grass;
   ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
-  // Dry patches for a sun-baked look.
+  // Dry patches for a sun-baked look — slightly larger and softer-edged now,
+  // so the grass reads less like a grid and more like baked summer ground.
   ctx.fillStyle = PALETTE.grassDry;
   for (let gx = Math.floor(x0 / 420) * 420; gx < x1; gx += 420) {
     for (let gy = Math.floor(y0 / 420) * 420; gy < y1; gy += 420) {
-      if (((gx * 7 + gy * 13) % 5) === 0) ctx.fillRect(gx + 40, gy + 60, 150, 110);
+      if (((gx * 7 + gy * 13) % 5) === 0) ctx.fillRect(gx + 36, gy + 56, 168, 118);
     }
   }
   // Parks.
@@ -309,6 +311,20 @@ function drawMinimap(ctx, world, vw, vh) {
   ctx.fillText('SOLMAR BAY', mx + 2, my + size + 22);
 }
 
+function drawStar(ctx, x, y, r) {
+  ctx.beginPath();
+  for (let i = 0; i < 10; i += 1) {
+    const a = -Math.PI / 2 + (i * Math.PI) / 5;
+    const rad = i % 2 === 0 ? r : r * 0.45;
+    const px = x + Math.cos(a) * rad;
+    const py = y + Math.sin(a) * rad;
+    if (i === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+  ctx.fill();
+}
+
 function drawHUD(ctx, world, vw, vh) {
   const p = world.player;
   // Top-left: cash, health, ammo.
@@ -417,18 +433,21 @@ function drawHUD(ctx, world, vw, vh) {
   ctx.textAlign = 'left';
 }
 
-function drawStar(ctx, x, y, r) {
-  ctx.beginPath();
-  for (let i = 0; i < 10; i += 1) {
-    const a = -Math.PI / 2 + (i * Math.PI) / 5;
-    const rad = i % 2 === 0 ? r : r * 0.45;
-    const px = x + Math.cos(a) * rad;
-    const py = y + Math.sin(a) * rad;
-    if (i === 0) ctx.moveTo(px, py);
-    else ctx.lineTo(px, py);
+function wrapText(ctx, text, cx, y, maxWidth, lineHeight) {
+  const words = text.split(' ');
+  let line = '';
+  let cy = y;
+  for (const word of words) {
+    const test = line ? `${line} ${word}` : word;
+    if (ctx.measureText(test).width > maxWidth) {
+      ctx.fillText(line, cx, cy);
+      line = word;
+      cy += lineHeight;
+    } else {
+      line = test;
+    }
   }
-  ctx.closePath();
-  ctx.fill();
+  ctx.fillText(line, cx, cy);
 }
 
 function drawTitle(ctx, world, vw, vh) {
@@ -443,7 +462,7 @@ function drawTitle(ctx, world, vw, vh) {
   ctx.fillRect(0, 0, vw, vh);
   ctx.fillStyle = '#fff3c9';
   ctx.beginPath();
-  ctx.arc(vw - 190, 130, 52, 0, Math.PI * 2);
+  ctx.arc(vw - 200, 124, 58, 0, Math.PI * 2); // a bigger, lower sun for a stronger sunset
   ctx.fill();
   ctx.fillStyle = 'rgba(18,58,92,0.85)';
   let bx = 0;
@@ -481,23 +500,6 @@ function drawTitle(ctx, world, vw, vh) {
   ctx.fillText('ENTER to start   \u2022   WASD move   \u2022   E enter a car   \u2022   CLICK shoot   \u2022   M mission brief   \u2022   ESC pause', vw / 2, 610);
   ctx.fillText('Progress saves automatically after every mission. Steal cars, lose the cops, run the fares.', vw / 2, 636);
   ctx.textAlign = 'left';
-}
-
-function wrapText(ctx, text, cx, y, maxWidth, lineHeight) {
-  const words = text.split(' ');
-  let line = '';
-  let cy = y;
-  for (const word of words) {
-    const test = line ? `${line} ${word}` : word;
-    if (ctx.measureText(test).width > maxWidth) {
-      ctx.fillText(line, cx, cy);
-      line = word;
-      cy += lineHeight;
-    } else {
-      line = test;
-    }
-  }
-  ctx.fillText(line, cx, cy);
 }
 
 function drawPause(ctx, world, vw, vh) {
