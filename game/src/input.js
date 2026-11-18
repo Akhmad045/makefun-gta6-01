@@ -1,68 +1,102 @@
-// input.js — keyboard and mouse, boiled down to two questions the game asks
-// every frame: "is this held?" and "was this just pressed?".
+// Keyboard and mouse input for Solmar Bay. Held keys are read every frame;
+// one-shot presses (enter a car, fire, start, pause, mute) are queued as flags
+// and taken once by the loop, so a press between two frames is never lost and
+// never counted twice.
 
-export const KEYS = {
-  up: ['KeyW', 'ArrowUp'],
-  down: ['KeyS', 'ArrowDown'],
-  left: ['KeyA', 'ArrowLeft'],
-  right: ['KeyD', 'ArrowRight'],
-  enter: ['KeyE'],
-  brake: ['Space'],
-  shoot: ['KeyF'],
-  pause: ['Escape', 'KeyP'],
-  confirm: ['Enter'],
-  mission: ['KeyM'],
-};
+export const ACT_ENTER = 1;
+export const ACT_FIRE = 2;
+export const ACT_CONFIRM = 4;
+export const ACT_PAUSE = 8;
+export const ACT_MUTE = 16;
 
-export class Input {
-  constructor() {
-    this.down = new Set();
-    this.pressed = new Set();
-    this.mouse = { x: 0, y: 0, down: false, clicked: false };
-    this._onKeyDown = (event) => {
-      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(event.code)) event.preventDefault();
-      if (!event.repeat) this.pressed.add(event.code);
-      this.down.add(event.code);
-    };
-    this._onKeyUp = (event) => this.down.delete(event.code);
-    this._onMouseMove = (event) => {
-      this.mouse.x = event.clientX;
-      this.mouse.y = event.clientY;
-    };
-    this._onMouseDown = (event) => {
-      if (event.button === 0) {
-        this.mouse.down = true;
-        this.mouse.clicked = true;
-      }
-    };
-    this._onMouseUp = (event) => {
-      if (event.button === 0) this.mouse.down = false;
-    };
-    this._onBlur = () => {
-      this.down.clear();
-      this.mouse.down = false;
-    };
+const UP = new Set(['KeyW', 'ArrowUp']);
+const DOWN = new Set(['KeyS', 'ArrowDown']);
+const LEFT = new Set(['KeyA', 'ArrowLeft']);
+const RIGHT = new Set(['KeyD', 'ArrowRight']);
+const ENTER = new Set(['KeyE']);
+const FIRE = new Set(['KeyF']);
+const CONFIRM = new Set(['Enter', 'Space']);
+const PAUSE = new Set(['KeyP', 'Escape']);
+const MUTE = new Set(['KeyM']);
+
+export function createInput(canvas) {
+  const held = new Set();
+  let queued = 0;
+  let mouseDown = false;
+  const mouse = { x: 0, y: 0, inside: false };
+
+  window.addEventListener('keydown', (event) => {
+    if (UP.has(event.code) || DOWN.has(event.code) || LEFT.has(event.code) || RIGHT.has(event.code)) {
+      held.add(event.code);
+      event.preventDefault();
+    } else if (ENTER.has(event.code)) {
+      if (!event.repeat) queued |= ACT_ENTER;
+      event.preventDefault();
+    } else if (FIRE.has(event.code)) {
+      if (!event.repeat) queued |= ACT_FIRE;
+    } else if (CONFIRM.has(event.code)) {
+      if (!event.repeat) queued |= ACT_CONFIRM;
+      event.preventDefault();
+    } else if (PAUSE.has(event.code)) {
+      if (!event.repeat) queued |= ACT_PAUSE;
+    } else if (MUTE.has(event.code)) {
+      if (!event.repeat) queued |= ACT_MUTE;
+    } else {
+      return;
+    }
+  });
+
+  window.addEventListener('keyup', (event) => {
+    held.delete(event.code);
+  });
+
+  // A key released while the tab is hidden never sends keyup.
+  window.addEventListener('blur', () => {
+    held.clear();
+    mouseDown = false;
+  });
+
+  canvas.addEventListener('pointermove', (event) => {
+    const rect = canvas.getBoundingClientRect();
+    mouse.x = event.clientX - rect.left;
+    mouse.y = event.clientY - rect.top;
+    mouse.inside = true;
+  });
+
+  canvas.addEventListener('pointerdown', (event) => {
+    const rect = canvas.getBoundingClientRect();
+    mouse.x = event.clientX - rect.left;
+    mouse.y = event.clientY - rect.top;
+    mouse.inside = true;
+    mouseDown = true;
+    queued |= ACT_FIRE;
+    event.preventDefault();
+  });
+
+  window.addEventListener('pointerup', () => {
+    mouseDown = false;
+  });
+
+  function anyHeld(set) {
+    for (const code of set) if (held.has(code)) return true;
+    return false;
   }
 
-  attach() {
-    window.addEventListener('keydown', this._onKeyDown);
-    window.addEventListener('keyup', this._onKeyUp);
-    window.addEventListener('mousemove', this._onMouseMove);
-    window.addEventListener('mousedown', this._onMouseDown);
-    window.addEventListener('mouseup', this._onMouseUp);
-    window.addEventListener('blur', this._onBlur);
-  }
-
-  held(group) {
-    return KEYS[group].some((code) => this.down.has(code));
-  }
-
-  wasPressed(group) {
-    return KEYS[group].some((code) => this.pressed.has(code));
-  }
-
-  endFrame() {
-    this.pressed.clear();
-    this.mouse.clicked = false;
-  }
+  return {
+    mouse,
+    isMouseDown() {
+      return mouseDown;
+    },
+    // -1 / 0 / 1 on each axis, from the held movement keys.
+    move() {
+      const x = (anyHeld(RIGHT) ? 1 : 0) - (anyHeld(LEFT) ? 1 : 0);
+      const y = (anyHeld(DOWN) ? 1 : 0) - (anyHeld(UP) ? 1 : 0);
+      return { x, y };
+    },
+    takeActions() {
+      const taken = queued;
+      queued = 0;
+      return taken;
+    },
+  };
 }

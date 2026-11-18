@@ -1,78 +1,96 @@
-// config.js — Solmar Bay, tuned in one place.
-// Every number the game balances on lives here: the size of the city, how fast
-// Rae walks and drives, how hard the police push back, and the palette the
-// whole map is painted from.
+// Every tuning number, colour and label in one place, so the rest of the game
+// never hard-codes a magic value. Solmar Bay is a fixed-size world (3600 x 2600
+// units); the camera shows a 1280 x 800 logical window of it at zoom 1.
 
-export const WORLD = {
-  size: 2600, // the city is a square, measured in world units
-  roadEvery: 260, // spacing between the lines of the road grid
-  roadWidth: 58,
-  beachY: 2320, // south of this line is sand, then the bay
-  waterY: 2470,
-};
+export const STEP = 1 / 60;
+export const SAVE_KEY = 'solmar-bay.save.v1';
+
+export const WORLD = { width: 3600, height: 2600 };
+
+export const VIEW = { width: 1280, height: 800 };
 
 export const PLAYER = {
-  walkSpeed: 175,
-  radius: 11,
+  walkSpeed: 165,
+  radius: 13,
   maxHealth: 100,
-  enterCarRange: 46,
+  startCash: 40,
+  startAmmo: 24,
+  maxAmmo: 120,
 };
 
 export const CAR = {
-  length: 48,
-  width: 24,
-  accel: 340,
-  brake: 520,
-  reverseMax: 150,
-  maxSpeed: 430,
-  sportMaxSpeed: 540,
-  grip: 2.6, // steering authority, radians per second at full lock
+  accel: 420,
+  brake: 620,
+  reverseTop: 150,
   drag: 0.55,
+  grip: 2.6,
+  topSpeed: 560,
+  taxiTopSpeed: 500,
+  policeTopSpeed: 600,
+  enterRadius: 105,
 };
 
 export const POLICE = {
-  maxSpeed: 470,
-  accel: 380,
-  ramDamage: 6,
-  bustRange: 34,
-  bustTime: 1.6, // seconds an officer must stay on the player to bust them
+  ramDamage: 9,
+  bustRadius: 26,
+  calmSeconds: 9,
+  maxCars: 5,
 };
 
-export const WANTED = {
-  maxStars: 5,
-  decayDelay: 9, // seconds unseen before the stars start falling
-  decayEvery: 6,
-  copsPerStar: 2,
-  maxCops: 6,
+export const COMBAT = {
+  bulletSpeed: 900,
+  bulletLife: 0.9,
+  pistolDamage: 34,
+  fireCooldown: 0.22,
+  rivalShotCooldown: 1.4,
+  rivalDamage: 8,
 };
 
-export const TRAFFIC = { cars: 14, peds: 26 };
-export const SHOT = { seconds: 5 };
+export const FARES = { min: 18, max: 55 };
 
-export const PALETTE = {
-  grass: '#7fae62',
-  grassDry: '#93bd74',
-  sand: '#e8d5a4',
-  water: '#2e8fb5',
-  waterDeep: '#22779e',
-  road: '#3d3f45',
-  roadEdge: '#2c2e33',
-  sidewalk: '#b9b3a4',
-  lane: '#e8c84a',
-  buildingRoof: ['#c96f4a', '#4a7fb5', '#b5a04a', '#8a5fa8', '#5fa88a', '#b5526a', '#6a8a4f', '#d98a3d'],
-  buildingEdge: 'rgba(0,0,0,0.28)',
-  park: '#5d9b4e',
-  plaza: '#c9bfa8',
-  carColors: ['#d94f3d', '#3d7bd9', '#e8c84a', '#7ab648', '#e8e8e8', '#222831', '#c96fd0', '#4fb8c9'],
-  policeBody: '#e8e8ea',
-  playerShirt: '#ffcf3f',
-  minimapRoad: '#8a8f98',
-};
+export const MISSION_REWARDS = { fare: 120, package: 350, heist: 900 };
 
 export const DISTRICTS = [
-  { name: 'Old Port', x: 0, y: 1950, w: 900, h: 370 },
-  { name: 'Marina Bay', x: 1700, y: 1950, w: 900, h: 370 },
-  { name: 'Downtown', x: 780, y: 780, w: 1040, h: 780 },
-  { name: 'North Hills', x: 0, y: 0, w: 2600, h: 520 },
-  { name: 'Palm Court', x: 0, y: 1300, w: 780, h: 650 },
+  { name: 'Downtown', x0: 0, y0: 0, x1: 1680, y1: 1080 },
+  { name: 'Old Port', x0: 1680, y0: 0, x1: 3600, y1: 1080 },
+  { name: 'Palm Court', x0: 0, y0: 1080, x1: 1680, y1: 1880 },
+  { name: 'North Hills', x0: 0, y0: 1880, x1: 1680, y1: 2600 },
+  { name: 'Marina Bay', x0: 1680, y0: 1080, x1: 3600, y1: 2600 },
+];
+
+export const PALETTE = {
+  backdrop: '#0b1020',
+  grass: '#3f7a4a',
+  grassDark: '#35683f',
+  sand: '#d9c08a',
+  water: '#1d6f8f',
+  waterDeep: '#155a75',
+  road: '#33363d',
+  roadEdge: '#4a4e57',
+  lane: '#e8d44d',
+  sidewalk: '#8a8d94',
+  building: ['#b5674e', '#7a6a8f', '#4e7a8f', '#8f7a4e', '#5e8f6a', '#94604e', '#6a5e7a', '#7a8a9a'],
+  roof: ['#5a4a3a', '#3a4a5a', '#6a3a3a', '#4a5a3a', '#3a3a4a'],
+  park: '#2f6b3a',
+  tree: '#2c6b34',
+  palm: '#3f8f4a',
+  pier: '#7a5c3e',
+  cab: '#f2c230',
+  player: '#e84a5f',
+  police: '#2b5fd9',
+  policeLight: '#ff3b30',
+  rival: '#8a2f2f',
+  text: '#f4f1e8',
+  muted: '#b9c0cc',
+  gold: '#f2c230',
+  panel: 'rgba(12, 16, 30, 0.88)',
+};
+
+export const FONT = 'system-ui, -apple-system, "Segoe UI", sans-serif';
+
+export const CONTROLS_TEXT = [
+  'W A S D / arrows - walk or drive',
+  'E - get in / out of a car',
+  'Mouse - aim, click or F - fire pistol',
+  'M - mute, P - pause, Enter - start',
 ];

@@ -1,74 +1,180 @@
-// missions.js — the story of Solmar Bay.
-// Rae Delgado, a driver who lost her delivery job, takes work from Marisol Vega,
-// a fixer in Old Port. Three missions, played in order, plus taxi fares from
-// any pedestrian with a raised hand.
+// The story of Solmar Bay, told as a small state machine. Marisol Vega, a
+// fixer Rae Delgado owes a favour to, hands her three jobs in order; between
+// jobs the city offers taxi fares. The director never draws anything and never
+// touches the canvas: it watches where the player is, moves the mission marker,
+// spawns rivals, raises the heat and pays out cash through the hooks the world
+// hands it.
 
-export const STORY_INTRO = 'Rae Delgado lost her delivery job on a Tuesday. By Friday, Marisol Vega — fixer, lender, keeper of Old Port — offered her a wheel and a second chance. Solmar Bay pays drivers who don\u2019t ask questions.';
+import { MISSION_REWARDS } from './config.js';
 
-export const MISSIONS = [
-  {
-    id: 'first-fare',
-    title: 'Mission 1 — First Fare',
-    brief: 'Marisol needs a client moved quietly. Pick up the man in the grey suit at the Sunset Diner, then drive him to the Marina Bay docks. Don\u2019t keep him waiting.',
-    reward: 250,
-    stages: [
-      { type: 'goto', x: 650, y: 650, place: 'Sunset Diner', text: 'Pick up the client at the Sunset Diner' },
-      { type: 'drive', x: 2470, y: 2210, place: 'Marina Bay docks', text: 'Drive the client to the Marina Bay docks' },
-    ],
-  },
-  {
-    id: 'the-pickup',
-    title: 'Mission 2 — The Pickup',
-    brief: 'A package is waiting in the Old Port garage. Collect it on foot, then take it to Solmar Plaza. Vega\u2019s rivals know about the package — and the police have been tipped off.',
-    reward: 450,
-    stages: [
-      { type: 'goto', x: 390, y: 2210, place: 'Old Port garage', text: 'Collect the package at the Old Port garage' },
-      { type: 'deliver', x: 1300, y: 1300, place: 'Solmar Plaza', text: 'Deliver the package to Solmar Plaza — the cops are on you' },
-    ],
-  },
-  {
-    id: 'bay-heist',
-    title: 'Mission 3 — Bay Heist',
-    brief: 'A red Veloce GT is parked outside Bay Trust Bank. Take it. The whole city will be looking for it — lose the police, then bring it home to the Old Port garage.',
-    reward: 900,
-    stages: [
-      { type: 'steal', x: 1560, y: 910, place: 'Bay Trust Bank', text: 'Steal the red Veloce GT outside Bay Trust Bank' },
-      { type: 'escape', x: 390, y: 2210, place: 'Old Port garage', text: 'Lose the police, then deliver the Veloce to the Old Port garage' },
-    ],
-  },
+export const MISSION_TITLES = [
+  'A Quiet Fare',
+  'The Package',
+  'Daylight Heist',
 ];
 
-export function makeMissionState() {
-  return {
-    index: 0, // which mission of MISSIONS is active
-    stage: 0,
-    done: [], // ids of finished missions
-    active: false,
-    pickupCarried: false,
-    rivalsSpawned: false,
-    heistCar: null,
-    fare: null, // active taxi fare {from, to, pay}
-    banner: null, // {text, until}
-    startedAt: 0,
+const ARRIVE_RADIUS = 120;
+
+export function createDirector(city, hooks) {
+  const spots = city.spots;
+  const director = {
+    index: 0,
+    stage: 'toPickup',
+    marker: null,
+    markerLabel: '',
+    passenger: false,
+    done: false,
+    banner: '',
+    bannerTimer: 0,
   };
-}
 
-export function currentMission(state) {
-  if (state.index >= MISSIONS.length) return null;
-  return MISSIONS[state.index];
-}
+  function setMarker(x, y, label) {
+    director.marker = { x, y };
+    director.markerLabel = label;
+    hooks.setMarker(x, y, label);
+  }
 
-export function currentStage(state) {
-  const mission = currentMission(state);
-  if (!mission) return null;
-  return mission.stages[state.stage] || null;
-}
+  function clearMarker() {
+    director.marker = null;
+    director.markerLabel = '';
+    hooks.clearMarker();
+  }
 
-export function missionObjectiveText(state) {
-  const mission = currentMission(state);
-  if (!mission) return state.fare ? 'Taxi fare: take your passenger to the yellow marker' : 'All missions complete — Solmar Bay is yours. Free roam!';
-  const stage = currentStage(state);
-  if (!stage) return mission.title;
-  if (state.fare) return `Taxi fare ($${state.fare.pay}) — then: ${stage.text}`;
-  return stage.text;
+  function announce(text) {
+    director.banner = text;
+    director.bannerTimer = 4;
+    hooks.toast(text);
+  }
+
+  function startMission(i) {
+    director.index = i;
+    director.passenger = false;
+    if (i === 0) {
+      director.stage = 'toPickup';
+      setMarker(spots.client.x, spots.client.y, 'Pick up Marisol\u2019s client');
+      announce('Mission 1: A Quiet Fare - pick up the client in Marina Bay.');
+    } else if (i === 1) {
+      director.stage = 'toPickup';
+      setMarker(spots.warehouse.x, spots.warehouse.y, 'Collect the package');
+      announce('Mission 2: The Package - collect it at the Old Port warehouse.');
+    } else if (i === 2) {
+      director.stage = 'toPickup';
+      setMarker(spots.targetCar.x, spots.targetCar.y, 'Steal the marked coupe');
+      announce('Mission 3: Daylight Heist - take the red coupe in North Hills.');
+    } else {
+      director.done = true;
+      clearMarker();
+      announce('All missions done. Solmar Bay is yours - drive fares, stay sharp.');
+    }
+  }
+
+  function completeMission(state) {
+    const reward = director.index === 0
+      ? MISSION_REWARDS.fare
+      : director.index === 1 ? MISSION_REWARDS.package : MISSION_REWARDS.heist;
+    hooks.giveCash(reward);
+    hooks.audioCash();
+    announce(`Mission complete: ${MISSION_TITLES[director.index]} - $${reward} earned.`);
+    state.missionsDone += 1;
+    hooks.saveGame();
+    startMission(director.index + 1);
+  }
+
+  function near(state, point) {
+    const dx = state.player.x - point.x;
+    const dy = state.player.y - point.y;
+    return dx * dx + dy * dy < ARRIVE_RADIUS * ARRIVE_RADIUS;
+  }
+
+  // Advance the story one step. `state` is the world state; the director only
+  // reads the player's position and car, and writes through the hooks.
+  function update(state, dt) {
+    if (director.bannerTimer > 0) director.bannerTimer -= dt;
+    if (director.done) return;
+    if (director.index === 0) {
+      if (director.stage === 'toPickup') {
+        if (near(state, spots.client)) {
+          director.stage = 'toDrop';
+          director.passenger = true;
+          setMarker(spots.palmDrop.x, spots.palmDrop.y, 'Drop the client off');
+          announce('Client aboard. Take him to Palm Court - and drive smooth.');
+        }
+      } else if (near(state, spots.palmDrop)) {
+        director.passenger = false;
+        completeMission(state);
+      }
+    } else if (director.index === 1) {
+      if (director.stage === 'toPickup') {
+        if (near(state, spots.warehouse)) {
+          director.stage = 'toDrop';
+          hooks.spawnRivals(spots.warehouse.x, spots.warehouse.y, 3);
+          hooks.setWanted(2);
+          setMarker(spots.downtownDrop.x, spots.downtownDrop.y, 'Deliver the package');
+          announce('Ambush! Rival gunmen - and someone tipped off the police. Run it to Downtown.');
+        }
+      } else if (near(state, spots.downtownDrop)) {
+        completeMission(state);
+      }
+    } else if (director.index === 2) {
+      if (director.stage === 'toPickup') {
+        if (state.flags.heistCarTaken) {
+          director.stage = 'toDrop';
+          hooks.setWanted(3);
+          setMarker(spots.garage.x, spots.garage.y, 'Deliver the coupe');
+          announce('You have the coupe. Lose the heat and bring it to Marisol\u2019s garage.');
+        }
+      } else if (near(state, spots.garage)) {
+        if (state.player.car && state.player.car.kind === 'target') {
+          completeMission(state);
+        } else {
+          announce('Bring the coupe itself to the garage, not another car.');
+          director.bannerTimer = 3;
+        }
+      }
+    }
+  }
+
+  function objectiveText(state) {
+    if (director.done) return 'Free roam - pick up fares, explore Solmar Bay.';
+    if (director.index === 0) {
+      return director.stage === 'toPickup'
+        ? 'Mission 1 - A Quiet Fare: pick up the client in Marina Bay'
+        : 'Mission 1 - A Quiet Fare: drop the client in Palm Court';
+    }
+    if (director.index === 1) {
+      return director.stage === 'toPickup'
+        ? 'Mission 2 - The Package: collect it at the Old Port warehouse'
+        : 'Mission 2 - The Package: deliver it to Downtown';
+    }
+    if (director.stage === 'toPickup') {
+      return 'Mission 3 - Daylight Heist: steal the red coupe in North Hills';
+    }
+    return 'Mission 3 - Daylight Heist: deliver the coupe to the garage';
+  }
+
+  function restore(index) {
+    if (index >= 0 && index <= 2) {
+      director.index = index;
+      director.done = false;
+      startMission(index);
+    } else {
+      director.index = 3;
+      director.done = true;
+      clearMarker();
+    }
+  }
+
+  startMission(0);
+
+  return {
+    get index() { return director.index; },
+    get done() { return director.done; },
+    get marker() { return director.marker; },
+    get markerLabel() { return director.markerLabel; },
+    get banner() { return director.banner; },
+    get bannerTimer() { return director.bannerTimer; },
+    update,
+    objectiveText,
+    restore,
+  };
 }

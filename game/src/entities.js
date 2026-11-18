@@ -1,244 +1,185 @@
-// entities.js — the living city.
-// Traffic cars that drive the road grid, pedestrians on the sidewalks, police
-// cars and officers who chase the player, and the car physics they all share:
-// steering, acceleration, and collisions with buildings and each other.
+// The things that move around Solmar Bay: cars, pedestrians, officers, rivals
+// and bullets. This module only builds them and moves them; the rules about
+// what they mean (wanted level, fares, missions) live in world.js.
 
-import { WORLD, CAR, POLICE, PALETTE } from './config.js';
-import { mulberry32, range, pick, intRange } from './random.js';
-import { roadCenters, collideBuildings, pointInBuilding } from './city.js';
+import { CAR } from './config.js';
+import { randPick, randRange } from './random.js';
 
-export function makeCar(x, y, angle, opts) {
-  const o = opts || {};
+export const KIND_CAB = 'cab';
+export const KIND_TRAFFIC = 'traffic';
+export const KIND_POLICE = 'police';
+export const KIND_TARGET = 'target';
+export const KIND_SPORT = 'sport';
+
+export const TRAFFIC_COLORS = ['#c94f4f', '#4f7ac9', '#5aa85a', '#c9c9c9', '#8a6fb0', '#d98a3d', '#3d9a9a', '#b0b0b0'];
+
+export function makeCar(kind, x, y, angle, color, rng) {
+  const roll = rng || Math.random;
   return {
-    x, y, angle,
-    speed: o.speed || 0,
-    maxSpeed: o.maxSpeed || CAR.maxSpeed,
-    color: o.color || '#d94f3d',
-    police: !!o.police,
-    sport: !!o.sport,
-    taxi: !!o.taxi,
-    npc: o.npc !== false,
-    driver: o.driver || null, // 'traffic' | 'police' | 'player'
-    route: o.route || null,
-    target: null,
-    brakeLight: false,
-    damage: 0,
-    sirenPhase: Math.random() * 6,
+    kind,
+    x, y,
+    angle,
+    speed: 0,
+    color: color || pickCarColor(kind, roll),
+    hp: kind === KIND_POLICE ? 120 : 80,
+    maxHp: kind === KIND_POLICE ? 120 : 80,
+    driver: 'none',
+    // Traffic AI: which road the car is on and which way it travels.
+    axis: 'v',
+    dir: 1,
+    roadIndex: 0,
+    cruise: 150 + roll() * 80,
+    turnAt: 0,
+    wrecked: false,
+    smoke: 0,
+    sirenPhase: 0,
   };
 }
 
-export function stepCarPhysics(car, throttle, steer, dt, city) {
-  // throttle: -1 reverse/brake .. 1 full throttle. steer: -1 .. 1.
-  const maxFwd = car.maxSpeed;
-  if (throttle > 0) car.speed += CAR.accel * throttle * dt;
-  else if (throttle < 0) {
+function pickCarColor(kind, roll) {
+  if (kind === KIND_CAB) return '#f2c230';
+  if (kind === KIND_POLICE) return '#2b5fd9';
+  if (kind === KIND_TARGET) return '#d92638';
+  return TRAFFIC_COLORS[Math.floor(roll() * TRAFFIC_COLORS.length)];
+}
+
+export function makePed(x, y, rng) {
+  return {
+    x, y,
+    angle: randRange(rng, 0, Math.PI * 2),
+    speed: randRange(rng, 34, 62),
+    walkPhase: randRange(rng, 0, Math.PI * 2),
+    hailing: false,
+    fare: null,
+    down: false,
+    downTimer: 0,
+    shirt: randPick(rng, ['#e8e8e8', '#7ab5e8', '#e8a87a', '#a8e87a', '#e87ab5', '#c9a8e8']),
+    skin: randPick(rng, ['#e8b88a', '#c98d5f', '#8a5a3a', '#f0c8a0']),
+  };
+}
+
+export function makeOfficer(x, y) {
+  return { x, y, angle: 0, speed: 185, walkPhase: 0 };
+}
+
+export function makeRival(x, y, rng) {
+  const roll = rng || Math.random;
+  return { x, y, angle: 0, hp: 70, shootTimer: 0.4 + roll() * 0.8, walkPhase: 0 };
+}
+
+export function makeBullet(x, y, angle, fromPlayer) {
+  return {
+    x, y,
+    vx: Math.cos(angle) * 900,
+    vy: Math.sin(angle) * 900,
+    life: 0.9,
+    fromPlayer,
+  };
+}
+
+export function makeParticle(x, y, kind, rng) {
+  const roll = rng || Math.random;
+  return {
+    x, y,
+    vx: -60 + roll() * 120,
+    vy: -60 + roll() * 120,
+    life: kind === 'smoke' ? 1.1 : 0.5,
+    maxLife: kind === 'smoke' ? 1.1 : 0.5,
+    kind,
+    size: kind === 'smoke' ? 9 : 4,
+  };
+}
+
+// Steer a heading toward a target heading, turning at most `rate` radians.
+export function turnToward(angle, target, rate) {
+  let diff = target - angle;
+  while (diff > Math.PI) diff -= Math.PI * 2;
+  while (diff < -Math.PI) diff += Math.PI * 2;
+  if (diff > rate) return angle + rate;
+  if (diff < -rate) return angle - rate;
+  return target;
+}
+
+export function angleTo(ax, ay, bx, by) {
+  return Math.atan2(by - ay, bx - ax);
+}
+
+export function dist(ax, ay, bx, by) {
+  const dx = bx - ax;
+  const dy = by - ay;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
+// Drive a car forward along its heading with simple arcade physics: W
+// accelerates, S brakes or reverses, A/D steer harder the slower it goes.
+export function driveCar(car, move, dt, topSpeed) {
+  const forward = move.y < 0 ? 1 : move.y > 0 ? -1 : 0;
+  if (forward > 0) {
+    car.speed += CAR.accel * dt;
+  } else if (forward < 0) {
     if (car.speed > 5) car.speed -= CAR.brake * dt;
-    else car.speed += CAR.accel * 0.5 * throttle * dt; // reverse
+    else car.speed -= CAR.accel * 0.55 * dt;
   }
+  // Rolling drag, then clamp.
   car.speed -= car.speed * CAR.drag * dt;
-  if (car.speed > maxFwd) car.speed = maxFwd;
-  if (car.speed < -CAR.reverseMax) car.speed = -CAR.reverseMax;
-  // Steering authority falls off at speed, so a fast car stays stable instead of
-  // fishtailing: full lock at a crawl, about a third of it at top speed.
-  const speedRatio = Math.min(1, Math.abs(car.speed) / Math.max(1, car.maxSpeed));
-  const steerAuthority = CAR.grip * (1.15 - 0.8 * speedRatio);
-  car.angle += steer * steerAuthority * dt * Math.sign(car.speed || 1);
-  const nx = car.x + Math.cos(car.angle) * car.speed * dt;
-  const ny = car.y + Math.sin(car.angle) * car.speed * dt;
-  const hitWall = pointInBuilding(city, nx, ny);
-  if (hitWall) {
-    car.speed *= 0.45;
-    car.damage += Math.abs(car.speed) * 0.02 + 2;
-    const corrected = collideBuildings(city, nx, ny, CAR.length / 2);
-    car.x = corrected.x;
-    car.y = corrected.y;
-    return true;
-  }
-  car.x = nx;
-  car.y = ny;
-  return false;
+  if (car.speed > topSpeed) car.speed = topSpeed;
+  if (car.speed < -CAR.reverseTop) car.speed = -CAR.reverseTop;
+  if (Math.abs(car.speed) < 2 && forward === 0) car.speed = 0;
+
+  const steer = move.x;
+  const steerAuthority = Math.min(1, Math.abs(car.speed) / 120) * (car.speed < 0 ? -1 : 1);
+  car.angle += steer * CAR.grip * steerAuthority * dt;
+
+  car.x += Math.cos(car.angle) * car.speed * dt;
+  car.y += Math.sin(car.angle) * car.speed * dt;
 }
 
-export function carsOverlap(a, b) {
-  const dx = a.x - b.x;
-  const dy = a.y - b.y;
-  const d = Math.hypot(dx, dy);
-  return d < CAR.length * 0.85;
-}
-
-export function separateCars(cars) {
-  for (let i = 0; i < cars.length; i += 1) {
-    for (let j = i + 1; j < cars.length; j += 1) {
-      const a = cars[i];
-      const b = cars[j];
-      const dx = b.x - a.x;
-      const dy = b.y - a.y;
-      const d = Math.hypot(dx, dy);
-      const min = CAR.length * 0.8;
-      if (d > 0.01 && d < min) {
-        const push = (min - d) / 2;
-        const nx = dx / d;
-        const ny = dy / d;
-        a.x -= nx * push;
-        a.y -= ny * push;
-        b.x += nx * push;
-        b.y += ny * push;
-        a.speed *= 0.8;
-        b.speed *= 0.8;
+// Traffic AI: cruise along the current road; at an intersection, sometimes
+// turn onto the crossing road; at the edge of the map, turn around.
+export function driveTraffic(car, city, rng, dt) {
+  if (car.wrecked) return;
+  if (car.axis === 'v') {
+    car.y += car.dir * car.speed * dt;
+    car.x += (city.roadsV[car.roadIndex] - car.x) * Math.min(1, 3 * dt);
+    car.angle = car.dir > 0 ? Math.PI / 2 : -Math.PI / 2;
+    // Near a crossing street: maybe turn.
+    for (let hi = 0; hi < city.roadsH.length; hi += 1) {
+      const ry = city.roadsH[hi];
+      if (Math.abs(car.y - ry) < 10 && rng() < 0.02) {
+        car.axis = 'h';
+        car.roadIndex = hi;
+        car.dir = rng() < 0.5 ? -1 : 1;
+        break;
       }
     }
-  }
-}
-
-// --- Traffic ---
-
-export function spawnTraffic(city, count, rng) {
-  const centers = roadCenters();
-  const cars = [];
-  for (let i = 0; i < count; i += 1) {
-    const horizontal = rng() < 0.5;
-    const road = pick(rng, centers);
-    const along = range(rng, 100, WORLD.size - 100);
-    const dir = rng() < 0.5 ? 1 : -1;
-    const lane = 15;
-    const x = horizontal ? along : road + (dir > 0 ? lane : -lane);
-    const y = horizontal ? road + (dir > 0 ? lane : -lane) : along;
-    const angle = horizontal ? (dir > 0 ? 0 : Math.PI) : (dir > 0 ? Math.PI / 2 : -Math.PI / 2);
-    cars.push(makeCar(x, y, angle, {
-      speed: range(rng, 90, 150),
-      maxSpeed: range(rng, 120, 170),
-      color: pick(rng, PALETTE.carColors),
-      driver: 'traffic',
-    }));
-  }
-  return cars;
-}
-
-function angleDiff(a, b) {
-  let d = b - a;
-  while (d > Math.PI) d -= Math.PI * 2;
-  while (d < -Math.PI) d += Math.PI * 2;
-  return d;
-}
-
-export function stepTraffic(car, dt, city, rng) {
-  // Drive straight along the current road; at an intersection sometimes turn.
-  const centers = roadCenters();
-  const half = WORLD.roadWidth / 2;
-  const nearX = centers.some((c) => Math.abs(car.x - c) < half + 4);
-  const nearY = centers.some((c) => Math.abs(car.y - c) < half + 4);
-  const atIntersection = nearX && nearY;
-  if (atIntersection && rng() < dt * 0.9) {
-    // Pick a new heading: straight, left or right.
-    const turn = pick(rng, [0, 0, Math.PI / 2, -Math.PI / 2]);
-    car.angle += turn;
-    // Snap onto the road centre line so turns stay on the grid.
-    let bestX = car.x;
-    let bestD = Infinity;
-    for (const c of centers) {
-      if (Math.abs(car.x - c) < bestD) { bestD = Math.abs(car.x - c); bestX = c; }
-    }
-    let bestY = car.y;
-    bestD = Infinity;
-    for (const c of centers) {
-      if (Math.abs(car.y - c) < bestD) { bestD = Math.abs(car.y - c); bestY = c; }
-    }
-    if (Math.abs(Math.cos(car.angle)) > 0.7) car.y = bestY;
-    else car.x = bestX;
-  }
-  // Gentle speed wobble so traffic does not look like a conveyor belt.
-  const cruise = car.maxSpeed * (0.75 + 0.25 * Math.sin(car.x * 0.01 + car.y * 0.013));
-  const throttle = car.speed < cruise ? 0.5 : 0;
-  stepCarPhysics(car, throttle, 0, dt, city);
-}
-
-// --- Pedestrians ---
-
-export function spawnPedestrians(city, count, rng) {
-  const peds = [];
-  const centers = roadCenters();
-  for (let i = 0; i < count; i += 1) {
-    const road = pick(rng, centers);
-    const along = range(rng, 80, WORLD.size - 80);
-    const horizontal = rng() < 0.5;
-    const side = pick(rng, [-1, 1]) * (WORLD.roadWidth / 2 + 12);
-    peds.push({
-      x: horizontal ? along : road + side,
-      y: horizontal ? road + side : along,
-      angle: rng() * Math.PI * 2,
-      speed: range(rng, 28, 52),
-      color: pick(rng, ['#e86a92', '#5a8fd9', '#f2a541', '#7ac74f', '#c9c9c9', '#8a6fd0']),
-      walking: true,
-      pause: 0,
-      panic: 0,
-      fare: rng() < 0.22, // some pedestrians want a taxi ride
-    });
-  }
-  return peds;
-}
-
-export function stepPedestrian(ped, dt, city, rng, danger) {
-  if (ped.panic > 0) {
-    ped.panic -= dt;
-    ped.speed = 150;
-  } else if (ped.pause > 0) {
-    ped.pause -= dt;
-    return;
+    if (car.y < 60) { car.y = 60; car.dir = 1; }
+    if (car.y > city.height - 60) { car.y = city.height - 60; car.dir = -1; }
   } else {
-    ped.speed = 40;
-    if (rng() < dt * 0.15) ped.pause = range(rng, 0.5, 2.5);
-    if (rng() < dt * 0.2) ped.angle += pick(rng, [-Math.PI / 2, Math.PI / 2, Math.PI]);
-  }
-  if (danger && Math.hypot(danger.x - ped.x, danger.y - ped.y) < 130) {
-    ped.panic = 1.2;
-    ped.angle = Math.atan2(ped.y - danger.y, ped.x - danger.x);
-  }
-  const nx = ped.x + Math.cos(ped.angle) * ped.speed * dt;
-  const ny = ped.y + Math.sin(ped.angle) * ped.speed * dt;
-  if (!pointInBuilding(city, nx, ny) && nx > 30 && nx < WORLD.size - 30 && ny > 30 && ny < WORLD.beachY + 40) {
-    ped.x = nx;
-    ped.y = ny;
-  } else {
-    ped.angle += Math.PI / 2;
-  }
-}
-
-// --- Police ---
-
-export function spawnPoliceCar(city, player, rng) {
-  // Appear on a road near the player, just out of sight.
-  const centers = roadCenters();
-  const road = pick(rng, centers);
-  const horizontal = rng() < 0.5;
-  const offset = pick(rng, [-1, 1]) * range(rng, 500, 750);
-  const x = horizontal ? player.x + offset : road;
-  const y = horizontal ? road : player.y + offset;
-  const cx = Math.max(80, Math.min(WORLD.size - 80, x));
-  const cy = Math.max(80, Math.min(WORLD.size - 80, y));
-  return makeCar(cx, cy, Math.atan2(player.y - cy, player.x - cx), {
-    speed: 120,
-    maxSpeed: POLICE.maxSpeed,
-    color: PALETTE.policeBody,
-    police: true,
-    driver: 'police',
-  });
-}
-
-export function stepPoliceCar(car, player, playerInCar, dt, city) {
-  const targetAngle = Math.atan2(player.y - car.y, player.x - car.x);
-  const diff = angleDiff(car.angle, targetAngle);
-  const steer = Math.max(-1, Math.min(1, diff * 2.2));
-  const dist = Math.hypot(player.x - car.x, player.y - car.y);
-  const throttle = dist > 60 ? 1 : 0.4;
-  stepCarPhysics(car, throttle, steer, dt, city);
-  car.sirenPhase += dt;
-  // Ramming the player's car damages it; ramming the player on foot busts them.
-  if (dist < CAR.length * 0.9) {
-    if (playerInCar) {
-      car.speed *= 0.6;
-      return { rammed: true };
+    car.x += car.dir * car.speed * dt;
+    car.y += (city.roadsH[car.roadIndex] - car.y) * Math.min(1, 3 * dt);
+    car.angle = car.dir > 0 ? 0 : Math.PI;
+    for (let vi = 0; vi < city.roadsV.length; vi += 1) {
+      const rx = city.roadsV[vi];
+      if (Math.abs(car.x - rx) < 10 && rng() < 0.02) {
+        car.axis = 'v';
+        car.roadIndex = vi;
+        car.dir = rng() < 0.5 ? -1 : 1;
+        break;
+      }
     }
-    return { touching: true };
+    if (car.x < 60) { car.x = 60; car.dir = 1; }
+    if (car.x > city.width - 400) { car.x = city.width - 400; car.dir = -1; }
   }
-  return {};
+  car.speed += (car.cruise - car.speed) * Math.min(1, 1.5 * dt);
+}
+
+// A police car chases a point: steer toward it, go fast, and ram.
+export function chasePoint(car, tx, ty, dt, topSpeed) {
+  const wanted = angleTo(car.x, car.y, tx, ty);
+  car.angle = turnToward(car.angle, wanted, 3.4 * dt);
+  car.speed += CAR.accel * 1.15 * dt;
+  if (car.speed > topSpeed) car.speed = topSpeed;
+  car.x += Math.cos(car.angle) * car.speed * dt;
+  car.y += Math.sin(car.angle) * car.speed * dt;
+  car.sirenPhase += dt * 6;
 }

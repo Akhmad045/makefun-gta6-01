@@ -4,94 +4,103 @@
 [![rank](https://make.fun/badge/gta6-01/Akhmad045/makefun-gta6-01/rank.svg)](https://make.fun/bounty/gta6-01/leaderboard?utm_source=github&utm_medium=readme&utm_campaign=gta6-01)
 [![reward](https://make.fun/badge/gta6-01/Akhmad045/makefun-gta6-01/reward.svg)](https://make.fun/bounty/gta6-01?utm_source=github&utm_medium=readme&utm_campaign=gta6-01)
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Node](https://img.shields.io/badge/Node-22%2B-green.svg)](https://nodejs.org)
-[![Play offline](https://img.shields.io/badge/Play-offline-blue.svg)](#play-it)
-[![No dependencies](https://img.shields.io/badge/Dependencies-none-lightgrey.svg)](#play-it)
+Solmar Bay is a complete 2D top-down open-world crime game that runs entirely
+offline in a desktop browser from static files. There is no build step, no
+network request and no library: canvas rendering, a seeded city, and a story
+told through driving.
 
-**Solmar Bay** is a complete 2D top-down open-world crime game that runs entirely
-offline in a desktop browser, from static files alone. No build step, no network
-request, no library — just a canvas, a seeded city, and the rules.
+## The story
 
-Rae Delgado lost her delivery job on a Tuesday. By Friday, Marisol Vega — fixer,
-lender, keeper of Old Port — offered her a wheel and a second chance. Solmar Bay
-pays drivers who don't ask questions.
+Rae Delgado was a delivery driver until the company let her go. Now fixer
+Marisol Vega has work for her, and in Solmar Bay work always comes with a
+catch. Three jobs stand between Rae and a clean slate: a quiet fare that is
+not as quiet as it sounds, a package pickup that brings rival gunmen and a
+police tip-off, and a daylight car heist in North Hills. Between jobs, the
+yellow cab outside her apartment still earns its keep one fare at a time.
 
-## What's in the city
+## The city
 
-- **A city to explore on foot and by car** — a road grid of named districts
-  (Downtown, Old Port, Marina Bay, Palm Court, North Hills), a beach, a bay and a
-  pier, parks, plazas and palm rows, all generated from a seed.
-- **Traffic and pedestrians** — cars drive the grid and turn at intersections;
-  pedestrians walk the sidewalks, and some wave for a taxi fare worth $35–$85.
-- **Cars to steal and drive** — walk up to any car and press **E**. Stealing a
-  stranger's car raises your wanted level; Rae's own yellow cab is parked outside
-  her apartment.
-- **A wanted level and police who respond** — 1 to 5 stars. Police cars chase and
-  ram you; at 2+ stars officers chase you on foot and can bust you. Lose them and
-  the heat cools off.
-- **Missions and a story** — three missions for Marisol Vega: a quiet fare, a
-  package pickup with rivals and a police tip-off, and a daylight car heist.
-  Taxi fares pay between missions.
-- **Combat** — a pistol on foot (mouse to aim, click or **F** to fire), rival
-  gunmen in mission 2, wreckable police cars.
-- **HUD with a minimap** — cash, health, ammo, wanted stars, speedometer, mission
-  objective, a live minimap with the player, the police, traffic and the mission
-  marker, and a clock.
-- **Start screen and saves** — title screen with the story, pause menu, busted /
-  wasted endings, and progress saved to `localStorage` after every mission.
-- **Sound** — engine hum, police sirens, gunshots and mission jingles, all
-  synthesized with WebAudio. No audio files.
+Solmar Bay is a coastal city of five named districts, generated from a seed
+so the same seed always builds the same streets. Downtown towers over the
+north-west, the Old Port works the docks in the north-east, Palm Court keeps
+its plazas in the south-west, North Hills rises in the south, and Marina Bay
+watches the water in the south-east. A beach runs down the eastern edge, the
+bay opens beyond it, and a wooden pier reaches out past the palm rows. Parks,
+plazas and palm-lined avenues fill the blocks between the avenues, and every
+road on the grid is drivable.
 
-## Play it
+Traffic cars drive the grid and turn at intersections. Pedestrians walk the
+sidewalks, and some of them wave for a taxi. The sun moves across the clock
+in the corner of the screen while you work.
 
-```sh
-node serve.ts
-# then open http://localhost:8080
-```
+## On foot and behind the wheel
 
-Or serve `game/` with any static file server and open `game/index.html`.
+Walk up to any car and press E to get in. Rae's own yellow cab is parked
+outside her apartment, and it is the only car in the city that is truly hers.
+Taking a stranger's car raises the wanted level, and the police notice.
+Driving is arcade-simple: accelerate, brake, steer, and mind the buildings,
+because a hard crash wrecks a car and a wrecked car goes nowhere.
+
+The wanted level runs from one to five stars. Police cars chase and ram you,
+and at two stars and above officers chase you on foot and can bust you. Lose
+them, stay out of sight, and the heat cools off on its own. Getting busted
+costs Rae a fine and sends her home to start again.
+
+## Combat
+
+Rae carries a pistol. On foot, the mouse aims and a click or F fires. Rival
+gunmen show up during the package job and shoot back, and a police car that
+takes enough hits can be wrecked. Ammo is limited, so every shot should count,
+and shooting a bystander is the fastest way to earn stars you do not want.
+
+## The HUD
+
+Cash, health and ammo sit at the top left. Wanted stars, the clock and the
+current district sit at the top right. A speedometer and the car's condition
+appear at the bottom left while driving, the current objective runs along the
+bottom, and a live minimap in the bottom right shows Rae, the police, the
+traffic and the mission marker.
+
+## How to play
+
+Serve the game folder with any static server, or run `node serve.ts` from the
+repo root and open http://localhost:8901. The game opens on a title screen;
+press Enter to start. Progress is saved in the browser: cash, health, ammo
+and the current mission are kept in localStorage, so closing the tab does not
+lose the story.
+
+Missions are marked with a gold beacon. Taxi fares are marked in green: drive
+the cab up to a waving pedestrian, pick them up, and take them where they
+need to go. Fares pay cash, and cash is what keeps Rae moving.
 
 ## Controls
 
-| Key | Action |
-| --- | --- |
-| Enter | Start / confirm on the title and pause screens |
-| WASD / arrows | Walk, or drive (W/S throttle, A/D steer) |
-| E | Enter / exit a car |
-| Mouse + click / F | Aim and shoot (on foot) |
-| Space | Handbrake |
-| M | Mission brief |
-| Esc / P | Pause (Enter saves and returns to the title) |
+- W A S D or arrow keys: walk, or drive when in a car
+- E: get in or out of a car
+- Mouse: aim the pistol on foot
+- Click or F: fire the pistol
+- M: mute or unmute the sound
+- P or Esc: pause
+- Enter: start the game, or continue after being busted
 
 ## Screenshots
 
-The four screenshots in `screenshots/` are real renders of the game's own code,
-staged deterministically with `?shot=cover|drive|city|start&seed=7` and captured in
-headless Chromium — no edits, no compositing.
+The four screenshots in `screenshots/` are real renders of the game, taken
+in a browser from the shot scenes: the cover, a drive through the city, the
+full city from above, and the title screen. Each one is reproducible from the
+same seed with `?shot=cover|drive|city|start&seed=7`.
 
-## Structure
+## Tech notes
 
-```
-game/
-  index.html        the page: one canvas, one module script
-  src/
-    config.js       tuning numbers, palette, districts
-    random.js       seeded RNG (mulberry32)
-    input.js        keyboard + mouse
-    audio.js        WebAudio sound bank (all synthesized)
-    city.js         city generation, buildings, collision
-    entities.js     traffic, pedestrians, police, car physics
-    missions.js     the story: three missions + taxi fares
-    world.js        game state, update, wanted, save/load
-    render.js       canvas drawing, HUD, minimap, menus
-    shots.js        deterministic screenshot scenes
-    main.js         boot, fixed-step loop
-```
+The game is plain ES modules under `game/src/`, split by responsibility:
+city generation, the world simulation, missions, entities, rendering, input,
+procedural WebAudio sound, and the screenshot stager. Nothing is fetched over
+the network; every sound is synthesized in the browser. `main.ts` at the repo
+root copies `game/` and `screenshots/` to the output directory and writes
+`dossier.json` with the vendored make.fun library.
 
-## License
+Solmar Bay is an original game: its city, characters, vehicles, names, story,
+art and sounds are all its own, made for the make.fun gta6-01 bounty.
 
-MIT — see [LICENSE](LICENSE). Solmar Bay, its city, characters and story are
-entirely original.
-
-Built for the make.fun gta6-01 bounty — play it here: https://make.fun/bounty/gta6-01?ref=4g7knchf
+Play it, break it, and tell us what the city did to you.
+— Built for the make.fun gta6-01 bounty: https://make.fun/bounty/gta6-01?ref=4g7knchf
